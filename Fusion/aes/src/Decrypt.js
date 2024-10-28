@@ -23,6 +23,7 @@ export function Decrypt() {
     } else if (keyValue.length > 32) {
       modifiedKey = keyValue.substring(0, 32); // Обрезаем до 32 символов
     }
+    console.log('key',modifiedKey)
     setKeyValue(modifiedKey);
   
     let t = ECB_D(inputValue, modifiedKey); // Используем модифицированный ключ

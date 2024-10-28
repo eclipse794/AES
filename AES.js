@@ -220,7 +220,9 @@ function keyExpansion(key) {
 
 function AES_Encrypt(plaintext, key) {
   ByteText = plaintext;
+  console.time("executionTime");  
   const keys = keyExpansion(key);
+  console.timeEnd("executionTime"); 
   let firstKey = hexToBytes(key);
   let res = [];
   for (let i = 0; i < 16; i++) {
