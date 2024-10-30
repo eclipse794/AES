@@ -56,6 +56,7 @@ def send_message():
     data = request.json
     encrypted_message = data.get('encryptedMessage')
     idCL = data.get('id')
+    print('chipher', encrypted_message)
 
     if not encrypted_message or not idCL:
         return jsonify({"status": "error", "message": "Неверные данные"}), 400
@@ -70,9 +71,11 @@ def send_message():
     symmetric_key = result[0]  # Получаем хэш симметричного ключа
 
     print("Получено зашифрованное сообщение:", encrypted_message)
-    
+    string_list = [''.join([chr(b) for b in byte_list]) for byte_list in encrypted_message]
+    print(''.join(string_list))
     # Расшифровка сообщения с использованием симметричного ключа
     decrypted_message = ecb_decrypt(encrypted_message, symmetric_key)
+    print("Расшифровка:", ''.join(decrypted_message))
     
     return jsonify({"status": "success", "message": "Сообщение успешно расшифровано", "decrypted_message": decrypted_message})
 

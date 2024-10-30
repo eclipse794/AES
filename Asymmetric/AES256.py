@@ -323,7 +323,7 @@ def ecb_decrypt(ciphertext, key):
         decrypted_block = aes_decrypt_256(block, key)
         crypto.append(bytes(decrypted_block).decode('utf-8', errors='ignore'))
     
-    print('itog',crypto)
+    # print('itog',crypto)
     return crypto
 
 # b=aes_encrypt_256(text_to_bytes('Hello world00000'),'2b7e151628aed2a6abf7158809cf4f3c2b7e151628aed2a6abf7158809cf4f3c')
