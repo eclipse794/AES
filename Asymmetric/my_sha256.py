@@ -83,5 +83,6 @@ class SHA256:
 
 
 # sha = SHA256()
-# result = sha.calculate_hash("Hello world".encode())
+# result = str(sha.calculate_hash("Hello world".encode()))
+# message_hash_int = int(result, 16)
 # print(result)

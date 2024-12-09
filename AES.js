@@ -113,7 +113,6 @@ function invChangeSBOX(number) {
     const End = invSBox[One][Two];
     return End;
   }
-// Функция для расшифровки ключа
 function Double(number) {
   const byte = number & 0xff;
   let result = byte << 1;
@@ -348,7 +347,7 @@ function ECB_S(plaintext, key) {
       let string=AES_Decrypt(blocks[a], key);
       crypto.push(Buffer.from(string).toString('utf8'));
     }
-    console.log(crypto);
+    console.log('itog',crypto);
   }
 
 const keyUp = "2b7e151628aed2a6abf7158809cf4f3c";

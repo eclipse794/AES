@@ -1,31 +1,72 @@
 import React, { useState } from 'react';
+import './App.css'; // Импортируйте файл стилей
 
-function isPrime(n) {
-    if (n <= 1) {
-        return false;
-    }
-    for (let i = 2; i <= Math.sqrt(n); i++) {
-        if (n % i === 0) {
-            return false;
+function modExp(base, exp, mod) {
+    let result = 1;
+    base = base % mod;
+    
+    while (exp > 0) {
+        if (exp % 2 === 1) { // Если exp нечетное
+            result = (result * base) % mod;
         }
+        exp = Math.floor(exp / 2);
+        base = (base * base) % mod;
     }
+    
+    return result;
+}
+
+function isPrime(n, k = 40) { // k — количество раундов, увеличено для 1000-битных чисел
+    if (n <= 1) return false;
+    if (n <= 3) return true;
+    if (n % 2 === 0) return false;
+
+    // Представим n-1 в виде 2^r * d
+    let r = 0;
+    let d = n - 1;
+    while (d % 2 === 0) {
+        r++;
+        d = Math.floor(d / 2);
+    }
+
+    // Тестируем k раз
+    for (let i = 0; i < k; i++) {
+        let a = Math.floor(Math.random() * (n - 3)) + 2;
+        let x = modExp(a, d, n);
+
+        if (x === 1 || x === n - 1) continue;
+
+        let found = false;
+        for (let j = 0; j < r - 1; j++) {
+            x = modExp(x, 2, n);
+            if (x === n - 1) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) return false;
+    }
+
     return true;
 }
+
+
 function Up(base, exponent, modulus) {
-    console.log(base, exponent, modulus)
     base = base % modulus;
     let result = 1;
-  
+
     while (exponent > 0) {
-      if (exponent % 2 === 1) {
-        result = (result * base) % modulus;
-      }
-      base = (base * base) % modulus;
-      exponent = Math.floor(exponent / 2);
+        if (exponent % 2 === 1) {
+            result = (result * base) % modulus;
+        }
+        base = (base * base) % modulus;
+        exponent = Math.floor(exponent / 2);
     }
-  
+
     return result;
-  }
+}
+
 function getRandomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -65,64 +106,67 @@ const App = () => {
     const [publicKey, setPublicKey] = useState('');
     const [privateKey, setPrivateKey] = useState('');
     const [loading, setLoading] = useState(false);
+
     const handleGenerateKeys = async () => {
-      setLoading(true);
-      let pValue = 0;
-      while (!isPrime(pValue)) {
-          pValue = getRandomNumber(1, 1000); // Уменьшил диапазон для простоты
-      }
-      let qValue = 0;
-      while (!isPrime(qValue) || pValue === qValue) { // Убедимся, что p и q разные
-          qValue = getRandomNumber(1, 10000000);
-      }
-  
-      const n = pValue * qValue;
-      const phi = (pValue - 1) * (qValue - 1);
-      const e = getRandomE(phi); // Случайный выбор e
-      const d = modInverse(e, phi);
-  
-      setP(pValue);
-      setQ(qValue);
-      setPublicKey(`(${e}, ${n})`); // Открытый ключ: (e, n)
-      setPrivateKey(`(${d}, ${n})`); // Закрытый ключ: (d, n)
-  
-      // Отправка открытого ключа на сервер
-      try {
-          const response = await fetch('http://localhost:5000/generate_key', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ publicKey: { e, n } }),
-          });
-  
-          if (!response.ok) {
-              throw new Error('Ошибка при отправке ключа');
-          }
-  
-          const result = await response.json();
-          console.log('Ответ сервера:', result);
-          console.log(Up(result.public.chipher, d, n))
-      } catch (error) {
-          console.error('Ошибка:', error);
-      }
-  
-      setLoading(false);
-  };
-  
+        setLoading(true);
+        let pValue = 0;
+        while (!isPrime(pValue)) {
+            pValue = getRandomNumber(1, 100000000000); // Уменьшил диапазон для простоты
+        }
+        let qValue = 0;
+        while (!isPrime(qValue) || pValue === qValue) { // Убедимся, что p и q разные
+            qValue = getRandomNumber(1, 2**512);
+        }
+
+        const n = pValue * qValue;
+        const phi = (pValue - 1) * (qValue - 1);
+        const e = getRandomE(phi); // Случайный выбор e
+        const d = modInverse(e, phi);
+
+        setP(pValue);
+        setQ(qValue);
+        setPublicKey(`(${e}, ${n})`); // Открытый ключ: (e, n)
+        setPrivateKey(`(${d}, ${n})`); // Закрытый ключ: (d, n)
+
+        // Отправка открытого ключа на сервер
+        try {
+            const response = await fetch('connect.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ publicKey: { e, n } }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Ошибка при отправке ключа');
+            }
+
+            const result = await response.json();
+            console.log('Ответ сервера:', result);
+            console.log(Up(result.public.chipher, d, n));
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+
+        setLoading(false);
+    };
+
     return (
-        <div>
+        <div className="app-container">
             <h1>Генератор ключей RSA</h1>
-            <button onClick={handleGenerateKeys} disabled={loading}>
+            <button onClick={handleGenerateKeys} disabled={loading} className="generate-button">
                 {loading ? 'Генерация...' : 'Сгенерировать ключи'}
             </button>
-            <h2>Случайные простые числа:</h2>
-            <p>p: {p}</p>
-            <p>q: {q}</p>
-            <h2>Публичный ключ:</h2>
-            <p>{publicKey}</p>
-            <h2>Приватный ключ:</h2>
-            <p>{privateKey}</p>
+            <div className="result-container">
+                <h2>Случайные простые числа:</h2>
+                <p>p: {p}</p>
+                <p>q: {q}</p>
+                <h2>Публичный ключ:</h2>
+                <p>{publicKey}</p>
+                <h2>Приватный ключ:</h2>
+                <p>{privateKey}</p>
+            </div>
         </div>
     );
 };

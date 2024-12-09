@@ -76,10 +76,11 @@ def get_random_e(phi):
     return e
 
 # Функция для отправки зашифрованного сообщения на сервер
-def send_encrypted_message(message, symmetric_key_bytes, myID):
+def send_encrypted_message(message, symmetric_key_bytes, myID, supersign):
     encrypted_message = ecb_encrypt(message,symmetric_key_bytes)
+    print('Начальный хэш сообщения:', supersign)
     try:
-        response = requests.post('http://localhost:5000/send_message', json={'encryptedMessage': encrypted_message, 'id':myID})
+        response = requests.post('http://localhost:5000/send_message', json={'encryptedMessage': encrypted_message, 'signature': supersign, 'id': myID})
         if response.status_code == 200:
             print("Сообщение успешно отправлено")
         else:
@@ -115,21 +116,32 @@ def generate_keys_and_send():
             print("Ошибка при отправке ключа")
         else:
             result = response.json()
-            print("Ответ сервера:", result)
+            podp=result['Agreed']['hash']
+            Mass=result['Agreed']['message']
+            shas = SHA256()
+            resultat = shas.calculate_hash(Mass.encode())
+            Idpodp=mod_exp(podp,44304114243519824536190674373649699331052442148865374737998814738026331661551740074648950463632797844755409640695099753875251227274518334132643669396507830569064902430447365928169899770478563520652377560006877080607152192498206108880950530916638954076748434940318201328885961533574254474849852873031761454659,92091660169167419559197440624591832530579526883219323557199340404563973391435874521361542335510593648022814023752338463760330462534462316740321385576203289116752289585767802651661529586265786884017770196169402312110716890780234237152155461164865986703398761239992107537330115813034830250372521369969141441367)
+            sha_sign = hex(Idpodp)[2:]
+            if resultat in sha_sign:
+                print('Сервер идентифицирован\n')
+            else:
+                print('Где сервер?')
             cipher = result['public']['chipher']
             decrypted = mod_exp(cipher, d, n)
-            print(f"Зашифрованное число: {cipher}")
-            print(f"Расшифрованное число: {decrypted}") # 16 байт = 128 бит
             sha = SHA256()
             sha_256 = sha.calculate_hash(str(decrypted).encode())
-            print('Hash', sha_256)
 
             # Возможность отправки зашифрованного сообщения
             while True:
                 user_input = input("Введите зашифрованное сообщение для отправки (или 'exit' для выхода): ")
                 if user_input.lower() == 'exit':
                     break
-                send_encrypted_message(user_input, sha_256, result['id'])
+                sha_mess = SHA256()
+                sha_sign = sha_mess.calculate_hash(str(user_input).encode())
+                message_hash_int = int(sha_sign, 16)
+                print(f"int hash: {message_hash_int}")
+                supersign=mod_exp(message_hash_int, result['server_sign']['e'], result['server_sign']['n'])
+                send_encrypted_message(user_input, sha_256, result['id'], supersign)
 
     except Exception as e:
         print("Ошибка:", str(e))
